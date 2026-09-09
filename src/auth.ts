@@ -55,6 +55,16 @@ export class AuthManager {
         response.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' }).end('Invalid state');
         return;
       }
+      const oauthError = url.searchParams.get('error');
+      if (oauthError) {
+        const description = (url.searchParams.get('error_description') ?? oauthError)
+          .replace(/[\r\n\t]/g, ' ')
+          .slice(0, 500);
+        response.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' })
+          .end(`Yoto authorization failed: ${description}`);
+        rejectCode(new Error(`Authorization failed: ${oauthError}: ${description}`));
+        return;
+      }
       const authorizationCode = url.searchParams.get('code');
       if (!authorizationCode) {
         response.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' }).end('Missing authorization code');

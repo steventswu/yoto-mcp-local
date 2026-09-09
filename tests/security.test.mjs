@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { lstat, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { createServer as createHttpServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -22,6 +23,15 @@ function config(overrides = {}) {
     maxUploadBytes: 1024,
     ...overrides,
   };
+}
+
+async function freePort() {
+  const server = createHttpServer();
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const address = server.address();
+  await new Promise((resolve) => server.close(resolve));
+  if (!address || typeof address === 'string') throw new Error('Could not allocate a test port');
+  return address.port;
 }
 
 async function listTools(serverConfig) {
@@ -57,6 +67,23 @@ test('an expired authentication attempt does not terminate the MCP process', asy
   await auth.start();
   await new Promise((resolve) => setTimeout(resolve, 30));
   await assert.rejects(() => auth.complete(), /No authentication flow is pending/);
+});
+
+test('OAuth callback reports access_denied instead of a missing-code error', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'yoto-auth-error-test-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const port = await freePort();
+  const serverConfig = config({ redirectPort: port, tokenFile: join(directory, 'tokens.json') });
+  const auth = new AuthManager(serverConfig, new TokenStore(serverConfig.tokenFile), 1_000);
+  const started = await auth.start();
+  const state = new URL(started.url).searchParams.get('state');
+
+  const response = await fetch(
+    `${started.redirectUri}?error=access_denied&error_description=Scope%20not%20pre-approved&state=${state}`,
+  );
+  assert.equal(response.status, 400);
+  assert.match(await response.text(), /Yoto authorization failed: Scope not pre-approved/);
+  await assert.rejects(() => auth.complete(), /Authorization failed: access_denied/);
 });
 
 test('token store writes mode 0600 and removes the token on logout', async (t) => {
