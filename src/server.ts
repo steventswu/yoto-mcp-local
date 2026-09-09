@@ -29,7 +29,7 @@ export function buildServer(config: Config): McpServer {
   });
 
   server.registerTool('yoto_auth_status', {
-    description: 'Show whether this local server has a Yoto refresh token, without returning tokens.',
+    description: 'Show whether this local server has a Yoto refresh token, without returning the token.',
     annotations: { readOnlyHint: true, openWorldHint: false },
   }, async (): Promise<CallToolResult> => ({ content: [{ type: 'text', text: JSON.stringify(await auth.status(), null, 2) }] }));
 

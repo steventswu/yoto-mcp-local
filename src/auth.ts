@@ -90,8 +90,8 @@ export class AuthManager {
     authUrl.search = new URLSearchParams({
       audience: this.config.audience,
       scope: this.config.enableWrites
-        ? 'user:content:manage family:devices:view offline_access profile'
-        : 'user:content:view family:devices:view offline_access profile',
+        ? 'user:content:manage family:devices:view offline_access'
+        : 'user:content:view family:devices:view offline_access',
       response_type: 'code',
       client_id: this.config.clientId,
       code_challenge: challenge,
@@ -102,7 +102,7 @@ export class AuthManager {
     return { url: authUrl.toString(), redirectUri };
   }
 
-  async complete(): Promise<{ email?: string; name?: string }> {
+  async complete(): Promise<{ authenticated: true }> {
     const pending = this.pending;
     if (!pending) throw new Error('No authentication flow is pending. Call yoto_auth_start first.');
 
@@ -123,15 +123,12 @@ export class AuthManager {
       const body = await response.json() as { access_token?: string; refresh_token?: string; expires_in?: number };
       if (!body.access_token || !body.refresh_token || !body.expires_in) throw new Error('Yoto did not return complete tokens');
 
-      const profile = await this.fetchProfile(body.access_token);
       await this.store.save({
         accessToken: body.access_token,
         refreshToken: body.refresh_token,
         expiresAt: Date.now() + body.expires_in * 1000,
-        email: profile.email,
-        name: profile.name,
       });
-      return profile;
+      return { authenticated: true };
     } finally {
       clearTimeout(pending.timeout);
       await new Promise<void>((resolve) => pending.server.close(() => resolve()));
@@ -172,14 +169,5 @@ export class AuthManager {
 
   async logout(): Promise<void> {
     await this.store.clear();
-  }
-
-  private async fetchProfile(accessToken: string): Promise<{ email?: string; name?: string }> {
-    const response = await fetch(`https://${this.config.authDomain}/userinfo`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!response.ok) throw new Error(`Profile request failed (${response.status})`);
-    const profile = await response.json() as { email?: string; name?: string };
-    return { email: profile.email, name: profile.name };
   }
 }

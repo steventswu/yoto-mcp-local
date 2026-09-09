@@ -19,7 +19,7 @@ A security-focused local Yoto MCP server using Yoto's official TypeScript SDK an
 | --- | --- |
 | `yoto_auth_start` | Start the local Yoto Authorization Code + PKCE login flow and return the browser URL. |
 | `yoto_auth_complete` | Complete the pending PKCE login after the browser redirects to the local callback. |
-| `yoto_auth_status` | Show local authentication status and profile metadata without returning tokens. |
+| `yoto_auth_status` | Show local authentication status without returning tokens. |
 | `yoto_logout` | Delete the locally stored Yoto token record without calling a remote API. |
 | `yoto_list_cards` | List the authenticated user's MYO cards. Read-only. |
 | `yoto_get_card` | Retrieve one MYO card by ID. Read-only. |

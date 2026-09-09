@@ -12,7 +12,7 @@
 | Tool | Default | Yoto API / SDK | Permission |
 | --- | --- | --- | --- |
 | `yoto_auth_start` | Enabled | `/authorize` | No API data |
-| `yoto_auth_complete` | Enabled | `/oauth/token`, `/userinfo` | `offline_access`, `profile` |
+| `yoto_auth_complete` | Enabled | `/oauth/token` | `offline_access` |
 | `yoto_auth_status` | Enabled | Local token metadata | No Yoto API call |
 | `yoto_logout` | Enabled | Delete local token | No Yoto API call |
 | `yoto_list_cards` | Enabled | `content.getMyCards()` | `user:content:view` |

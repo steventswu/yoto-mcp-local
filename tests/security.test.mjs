@@ -76,7 +76,14 @@ test('OAuth callback reports access_denied instead of a missing-code error', asy
   const serverConfig = config({ redirectPort: port, tokenFile: join(directory, 'tokens.json') });
   const auth = new AuthManager(serverConfig, new TokenStore(serverConfig.tokenFile), 1_000);
   const started = await auth.start();
-  const state = new URL(started.url).searchParams.get('state');
+  const authorizationUrl = new URL(started.url);
+  const state = authorizationUrl.searchParams.get('state');
+  const scopes = authorizationUrl.searchParams.get('scope')?.split(' ') ?? [];
+  assert.deepEqual(
+    new Set(scopes),
+    new Set(['user:content:view', 'family:devices:view', 'offline_access']),
+  );
+  assert(!scopes.includes('profile'));
 
   const response = await fetch(
     `${started.redirectUri}?error=access_denied&error_description=Scope%20not%20pre-approved&state=${state}`,
