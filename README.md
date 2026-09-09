@@ -13,6 +13,21 @@ A security-focused local Yoto MCP server using Yoto's official TypeScript SDK an
 - Presigned uploads require HTTPS, reject redirects, and never attach a Bearer token.
 - Multiple accounts are not supported, reducing accidental cross-account operations.
 
+## Available Tools
+
+| Tool name | Description |
+| --- | --- |
+| `yoto_auth_start` | Start the local Yoto Authorization Code + PKCE login flow and return the browser URL. |
+| `yoto_auth_complete` | Complete the pending PKCE login after the browser redirects to the local callback. |
+| `yoto_auth_status` | Show local authentication status and profile metadata without returning tokens. |
+| `yoto_logout` | Delete the locally stored Yoto token record without calling a remote API. |
+| `yoto_list_cards` | List the authenticated user's MYO cards. Read-only. |
+| `yoto_get_card` | Retrieve one MYO card by ID. Read-only. |
+| `yoto_list_devices` | List linked Yoto players and their status. Does not control or modify devices. |
+| `yoto_create_card` | Create an empty MYO card. Disabled by default; requires `YOTO_ENABLE_WRITES=true` and `confirm=true`. |
+| `yoto_delete_card` | Permanently delete an MYO card. Disabled by default; requires `YOTO_ENABLE_WRITES=true` and exact confirmation text. |
+| `yoto_upload_audio` | Upload an MP3/M4A file from `YOTO_AUDIO_ROOT` and wait for transcoding. Disabled by default; requires `YOTO_ENABLE_WRITES=true`. |
+
 ## Build
 
 Node 20+ is required. First create a Public Client in the Yoto Developer Dashboard and register:
