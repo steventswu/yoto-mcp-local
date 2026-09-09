@@ -40,6 +40,16 @@ npm run typecheck
 npm run build
 ```
 
+## Test
+
+Run the offline test suite and dependency audit:
+
+```sh
+npm run check
+```
+
+The tests do not authenticate with Yoto or call the Yoto API. They cover safe configuration defaults, conditional write-tool exposure, delete confirmation, token-file permissions and removal, and audio path restrictions.
+
 ## Run
 
 ```sh
