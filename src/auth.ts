@@ -17,7 +17,11 @@ interface PendingAuth {
 export class AuthManager {
   private pending?: PendingAuth;
 
-  constructor(private readonly config: Config, private readonly store: TokenStore) {}
+  constructor(
+    private readonly config: Config,
+    private readonly store: TokenStore,
+    private readonly authTimeoutMs = 5 * 60_000,
+  ) {}
 
   async start(): Promise<{ url: string; redirectUri: string }> {
     if (this.pending) throw new Error('An authentication flow is already pending. Complete it first.');
@@ -33,6 +37,9 @@ export class AuthManager {
       resolveCode = resolve;
       rejectCode = reject;
     });
+    // The user may never call yoto_auth_complete. Attach a rejection handler
+    // immediately so an expired login attempt cannot terminate the MCP process.
+    void code.catch(() => {});
 
     const server = createServer((request, response) => {
       if (request.method !== 'GET') {
@@ -67,7 +74,7 @@ export class AuthManager {
       rejectCode(new Error('Authentication timed out'));
       if (this.pending?.server === server) this.pending = undefined;
       server.close();
-    }, 5 * 60_000);
+    }, this.authTimeoutMs);
     this.pending = { state, verifier, redirectUri, server, code, resolveCode, rejectCode, timeout };
     const authUrl = new URL(`https://${this.config.authDomain}/authorize`);
     authUrl.search = new URLSearchParams({

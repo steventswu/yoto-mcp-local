@@ -48,6 +48,17 @@ test('configuration defaults to read-only and bounded uploads', () => {
   assert.equal(result.maxUploadBytes, 100 * 1024 * 1024);
 });
 
+test('an expired authentication attempt does not terminate the MCP process', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'yoto-auth-timeout-test-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const serverConfig = config({ redirectPort: 0, tokenFile: join(directory, 'tokens.json') });
+  const auth = new AuthManager(serverConfig, new TokenStore(serverConfig.tokenFile), 10);
+
+  await auth.start();
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  await assert.rejects(() => auth.complete(), /No authentication flow is pending/);
+});
+
 test('token store writes mode 0600 and removes the token on logout', async (t) => {
   const directory = await mkdtemp(join(tmpdir(), 'yoto-token-test-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
