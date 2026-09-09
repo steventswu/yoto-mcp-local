@@ -1,47 +1,47 @@
-# YotoMCP Local 設計基準
+# YotoMCP Local Design Baseline
 
-## 規格來源
+## Specification sources
 
-- Yoto 官方 SDK：`@yotoplay/yoto-sdk` 1.2.4
-- Yoto API：`https://yoto.dev/api/`
-- Yoto CLI authentication：Authorization Code + PKCE，loopback callback
-- Yoto API scopes：只請求實際功能需要的 scope
+- Yoto official SDK: `@yotoplay/yoto-sdk` 1.2.4
+- Yoto API: `https://yoto.dev/api/`
+- Yoto CLI authentication: Authorization Code + PKCE with a loopback callback
+- Yoto API scopes: request only the scopes required by the enabled features
 
-## 第一版工具
+## Initial tool set
 
-| Tool | 預設 | Yoto API / SDK | 權限 |
-| --- | --- | --- | ---
-| `yoto_auth_start` | 開啟 | `/authorize` | 無 API data
-| `yoto_auth_complete` | 開啟 | `/oauth/token`, `/userinfo` | `offline_access`, `profile`
-| `yoto_auth_status` | 開啟 | 本機 token metadata | 無 Yoto API call
-| `yoto_logout` | 開啟 | 本機刪除 token | 無 Yoto API call
-| `yoto_list_cards` | 開啟 | `content.getMyCards()` | `user:content:view`
-| `yoto_get_card` | 開啟 | `content.getCard(cardId)` | `user:content:view`
-| `yoto_list_devices` | 開啟 | `devices.getMyDevices()` | `family:devices:view`
-| `yoto_create_card` | 關閉 | `content.updateCard(card)` | `user:content:manage` + `confirm=true`
-| `yoto_delete_card` | 關閉 | `content.deleteCard(cardId)` | `user:content:manage` + `DELETE <cardId>`
-| `yoto_upload_audio` | 關閉 | media upload URL + transcode | `user:content:manage` + `YOTO_AUDIO_ROOT`
+| Tool | Default | Yoto API / SDK | Permission |
+| --- | --- | --- | --- |
+| `yoto_auth_start` | Enabled | `/authorize` | No API data |
+| `yoto_auth_complete` | Enabled | `/oauth/token`, `/userinfo` | `offline_access`, `profile` |
+| `yoto_auth_status` | Enabled | Local token metadata | No Yoto API call |
+| `yoto_logout` | Enabled | Delete local token | No Yoto API call |
+| `yoto_list_cards` | Enabled | `content.getMyCards()` | `user:content:view` |
+| `yoto_get_card` | Enabled | `content.getCard(cardId)` | `user:content:view` |
+| `yoto_list_devices` | Enabled | `devices.getMyDevices()` | `family:devices:view` |
+| `yoto_create_card` | Disabled | `content.updateCard(card)` | `user:content:manage` + `confirm=true` |
+| `yoto_delete_card` | Disabled | `content.deleteCard(cardId)` | `user:content:manage` + `DELETE <cardId>` |
+| `yoto_upload_audio` | Disabled | Media upload URL + transcode | `user:content:manage` + `YOTO_AUDIO_ROOT` |
 
-第一版不註冊 `family:devices:control` 或 `family:devices:manage`，因此不會遠端控制或修改播放器設定。
+The initial version does not request `family:devices:control` or `family:devices:manage`, so it cannot remotely control players or change player settings.
 
-## 威脅模型與控制
+## Threat model and controls
 
-1. MCP client 可能受到 prompt injection 影響：寫入工具預設不註冊，並要求確認參數。
-2. MCP server 可能被誤設為遠端服務：只使用 stdio，不建立 HTTP listener。
-3. OAuth callback 被本機其他程序攔截：使用隨機 `state`、PKCE verifier，且 callback 只綁定 `127.0.0.1`。
-4. refresh token 遭本機讀取：token 目錄 0700、token 檔案 0600，不將 token 寫入 log 或 MCP response。
-5. 任意本機檔案外傳：上傳必須設定 `YOTO_AUDIO_ROOT`，使用 `realpath` 防止 symlink escape，只接受 MP3/M4A，並有大小上限。
-6. presigned URL redirect 風險：只接受 HTTPS 並設定 `redirect: 'error'`；上傳 request 不附帶 Bearer token。
-7. 第三方套件供應鏈：依賴使用 exact version、提交 lockfile、安裝時使用 `--ignore-scripts`，建置前後執行 `npm audit`。
+1. The MCP client may be affected by prompt injection: write tools are not registered by default and require confirmation parameters.
+2. The MCP server may be accidentally deployed remotely: it uses stdio only and creates no HTTP listener.
+3. The OAuth callback may be intercepted by another local process: a random `state`, PKCE verifier, and `127.0.0.1` binding are used.
+4. A refresh token may be read locally: the token directory is 0700, the token file is 0600, and tokens are never written to logs or MCP responses.
+5. Local files may be exfiltrated: uploads require `YOTO_AUDIO_ROOT`, use `realpath` to prevent symlink escapes, accept only MP3/M4A, and enforce a size limit.
+6. Presigned URL redirects may leak data: only HTTPS is accepted and `redirect: 'error'` is used; upload requests do not include a Bearer token.
+7. Dependency supply-chain risk: dependencies use exact versions, the lockfile is committed, installation uses `--ignore-scripts`, and `npm audit` runs before and after builds.
 
-## 明確不做
+## Explicit non-goals
 
-- 不支援 HTTP、Docker remote deployment 或匿名網路存取。
-- 不支援多帳號，避免 account selector 造成跨帳號誤操作。
-- 不把完整卡片、家庭成員資料或 token 寫入本機快取。
-- 不自動建立、修改、刪除卡片，也不自動上傳檔案。
-- 不把 `ToolAnnotations` 當作真正的授權機制；它們只是給 MCP client 的風險提示。
+- No HTTP, Docker remote deployment, or anonymous network access.
+- No multiple-account support, avoiding cross-account mistakes caused by account selectors.
+- No local cache of complete cards, family-member data, or tokens.
+- No automatic card creation, modification, deletion, or file upload.
+- `ToolAnnotations` are not treated as authorization; they are risk hints for the MCP client.
 
-## 擴充門檻
+## Extension gate
 
-任何新增工具都必須先列出：API endpoint、所需 scope、是否讀本機檔案、是否改變 Yoto 狀態、人工確認方式、輸入限制、輸出是否含個資，以及對應測試。裝置控制與卡片更新應優先採兩階段 preview/commit，而不是讓模型直接提交完整 payload。
+Before adding any tool, document its API endpoint, required scope, local file access, Yoto state changes, human-confirmation method, input limits, whether output contains personal data, and corresponding tests. Device control and card updates should use a two-stage preview/commit flow instead of allowing the model to submit a complete payload directly.
