@@ -139,6 +139,9 @@ test('write tools are explicit and uploads require an audio root', async () => {
   const withRoot = await listTools(config({ enableWrites: true, audioRoot: tmpdir() }));
   try {
     assert(withRoot.result.tools.some((tool) => tool.name === 'yoto_upload_audio'));
+    assert(withRoot.result.tools.some((tool) => tool.name === 'yoto_append_playlist_from_files'));
+    assert(withRoot.result.tools.some((tool) => tool.name === 'yoto_get_operation'));
+    assert(!withRoot.result.tools.some((tool) => tool.name === 'yoto_upload_icon'));
   } finally {
     await Promise.all([withRoot.client.close(), withRoot.server.close()]);
   }

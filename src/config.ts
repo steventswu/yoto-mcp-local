@@ -7,6 +7,7 @@ export interface Config {
   audience: string;
   redirectPort: number;
   tokenFile: string;
+  manifestRoot: string;
   enableWrites: boolean;
   audioRoot?: string;
   maxUploadBytes: number;
@@ -30,6 +31,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
 
   const tokenFile = env.YOTO_TOKEN_FILE ?? resolve(homedir(), '.config/yoto-mcp-local/tokens.json');
+  const manifestRoot = env.YOTO_MANIFEST_ROOT
+    ? resolve(env.YOTO_MANIFEST_ROOT)
+    : resolve(homedir(), '.config/yoto-mcp-local/jobs');
   const audioRoot = env.YOTO_AUDIO_ROOT ? resolve(env.YOTO_AUDIO_ROOT) : undefined;
 
   return {
@@ -38,6 +42,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     audience: env.YOTO_AUDIENCE ?? 'https://api.yotoplay.com',
     redirectPort: positivePort(env.YOTO_REDIRECT_PORT),
     tokenFile: resolve(tokenFile.replace(/^~(?=\/)/, homedir())),
+    manifestRoot,
     enableWrites: env.YOTO_ENABLE_WRITES === 'true',
     audioRoot,
     maxUploadBytes: positiveUploadLimit(env.YOTO_MAX_UPLOAD_BYTES),

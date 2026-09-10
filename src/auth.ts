@@ -90,7 +90,7 @@ export class AuthManager {
     authUrl.search = new URLSearchParams({
       audience: this.config.audience,
       scope: this.config.enableWrites
-        ? 'user:content:manage family:devices:view offline_access'
+        ? 'user:content:view user:content:manage user:icons:manage family:devices:view offline_access'
         : 'user:content:view family:devices:view offline_access',
       response_type: 'code',
       client_id: this.config.clientId,
