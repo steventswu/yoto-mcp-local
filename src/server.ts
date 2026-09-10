@@ -32,7 +32,7 @@ interface AppendInput {
 export function buildServer(config: Config): McpServer {
   const auth = new AuthManager(config, new TokenStore(config.tokenFile));
   const yoto = new YotoClient(config, auth);
-  const server = new McpServer({ name: 'yoto-mcp-local', version: '0.1.0' });
+  const server = new McpServer({ name: 'yoto-mcp-local', version: '0.2.0' });
   const operations = new OperationManager({ concurrency: 2, maxRetries: 1 });
 
   server.registerTool('yoto_auth_start', {

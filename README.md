@@ -2,6 +2,12 @@
 
 A security-focused local Yoto MCP server using Yoto's official TypeScript SDK and the official OAuth Authorization Code + PKCE flow.
 
+## 0.2.0
+
+This release adds resumable operations, job manifests, card fingerprints and
+dry-run previews, bounded background progress, and deterministic resolution of
+existing Yoto user/public icons. It does not upload generated images.
+
 ## Security design
 
 - MCP stdio only; no HTTP listener is exposed.
@@ -10,6 +16,8 @@ A security-focused local Yoto MCP server using Yoto's official TypeScript SDK an
 - Read-only tools are enabled by default.
 - Write operations require `YOTO_ENABLE_WRITES=true`.
 - Uploads additionally require `YOTO_AUDIO_ROOT`, reject symlink escapes, accept only MP3/M4A files, and enforce a size limit.
+- Icon resolution reads existing Yoto user/public catalogs; it does not upload icon files.
+- Card updates verify expected snapshots and read back the resulting audio/icon references.
 - Presigned uploads require HTTPS, reject redirects, and never attach a Bearer token.
 - Multiple accounts are not supported, reducing accidental cross-account operations.
 
@@ -27,6 +35,12 @@ A security-focused local Yoto MCP server using Yoto's official TypeScript SDK an
 | `yoto_create_card` | Create an empty MYO card. Disabled by default; requires `YOTO_ENABLE_WRITES=true` and `confirm=true`. |
 | `yoto_delete_card` | Permanently delete an MYO card. Disabled by default; requires `YOTO_ENABLE_WRITES=true` and exact confirmation text. |
 | `yoto_upload_audio` | Upload an MP3/M4A file from `YOTO_AUDIO_ROOT` and wait for transcoding. Disabled by default; requires `YOTO_ENABLE_WRITES=true`. |
+| `yoto_create_playlist_from_files` | Create a playlist from local audio and resolve existing Yoto icons by title. |
+| `yoto_append_playlist_from_files` | Start a resumable append operation and return an `operationId`. |
+| `yoto_get_operation` | Read background operation progress and per-track status. |
+| `yoto_cancel_operation` | Request cancellation of a background operation. |
+| `yoto_get_job_manifest` | Read a local resumable job manifest. |
+| `yoto_truncate_playlist` | Destructively remove chapters after an expected count with exact confirmation and readback. |
 
 ## Build
 
@@ -35,7 +49,7 @@ Node 20+ is required. First create a Public Client in the Yoto Developer Dashboa
 `http://127.0.0.1:8787/callback`
 
 ```sh
-npm install --ignore-scripts
+npm ci --ignore-scripts
 npm run typecheck
 npm run build
 ```
@@ -64,7 +78,13 @@ To enable writes and audio uploads:
 YOTO_CLIENT_ID='your-public-client-id' \
 YOTO_ENABLE_WRITES=true \
 YOTO_AUDIO_ROOT="$HOME/YotoAudio" \
+YOTO_MANIFEST_ROOT="$HOME/YotoJobs" \
 node dist/index.js
 ```
+
+When writes are enabled, the OAuth client must allow `user:content:view`,
+`user:content:manage`, `user:icons:manage`, `family:devices:view`, and
+`offline_access`. Existing tokens may require a new OAuth consent after scope
+changes.
 
 Before production use, validate with a test account, test cards, and a dedicated audio directory. Never place a client secret, access token, or refresh token in configuration files, the repository, MCP messages, or logs.
